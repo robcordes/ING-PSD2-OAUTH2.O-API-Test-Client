@@ -1,0 +1,504 @@
+{
+	"info": {
+		"_postman_id": "e6481ef6-1bc2-49b5-a4e5-0b0bf2b0d2a7",
+		"name": "ING Sandbox Collection",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "HTTP Signing version",
+			"item": [
+				{
+					"name": "Sideload Jrsassign-js",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "1054c793-fed8-435d-b83f-8a3325daa673",
+								"exec": [
+									"pm.environment.set(\"jsrassign-js\",pm.response.text());",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/8.0.15/jsrsasign-all-min.js",
+							"protocol": "https",
+							"host": [
+								"cdnjs",
+								"cloudflare",
+								"com"
+							],
+							"path": [
+								"ajax",
+								"libs",
+								"jsrsasign",
+								"8.0.15",
+								"jsrsasign-all-min.js"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Client AT",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "dec2e768-b401-4d24-ac06-f8a9795be783",
+								"exec": [
+									"/* ",
+									"1. be sure that the body data type is RAW !! If it is not, then the signing will be different and the request will fail.",
+									"2. Be sure to keep the Sideload Jrsassign-js request in this collection and have >>> run the Jrsassign-js request before running this request just ONCE <<< . The functions for SHA-256 and RSA256 signing are used from this code base. The CryptoJS library included with Postman does not support RSA256 signing or signing at all at the time of writing.",
+									"    The script is pushed to the environment variable jsrassign-js. This script loads it from there with eval(\"jsrassign-js\").",
+									"3. I also use the PrivateKeySigningPEM environemnt variable. Herein the unencrypted base64 encoded private key is stored. You could add code to load it from a file.",
+									"*/",
+									"",
+									"/*The CryptoJS library is built-in to Postman, it contains a SHA256 digest function I actually did not use in the end. CryptoJS does not offer RSA256 signing.*/",
+									"/* var CryptoJS = require(\"crypto-js\"); -  if you do want to use this library afterall.*/",
+									"",
+									"/* I put the common functions used in the pre-request scripts in the environment variable \"Global JS functions\"",
+									"    The digest function sha256 and SHA256withRSA signing functions are called from the common functions. The signing and digest functions are a bit modified so it returns a base64 result",
+									"    instead of hexadecimal. Hence a new function for both in Global JS functions.",
+									"*/",
+									"",
+									"const navigator={};",
+									"const window={};",
+									"eval(pm.environment.get(\"jsrassign-js\")); ",
+									"eval(pm.environment.get(\"Global JS functions\"));",
+									"",
+									"/* format must be (for ING interoperability) :Fri, 01 May 2020 09:44:01 GMT;*/",
+									"todaysDate=generateCurrentDate();",
+									"",
+									"/* persist the generated date in environment variable crurrentDate */",
+									"pm.environment.set(\"currentDate\", todaysDate);",
+									"",
+									"/* calculate the SHA256 digest of the request body. */",
+									"var sha256digest=hashMe(pm.request.body.toString()); ",
+									"console.log(pm.request.body.toString());",
+									"pm.environment.set(\"digest\", sha256digest);",
+									"",
+									"/* Pay attention to the digest part of the payload. The correct value would be digest: SHA-256=(calculated digest)*/",
+									"/* signingPayload=\"(request-target): post /oauth2/token\\ndate: \"+todaysDate+\"\\ndigest: SHA-256=\"+sha256digest;",
+									"console.log(signingPayload); */",
+									"var requestPath=pm.request.url.getPath();",
+									"",
+									"",
+									"signingPayload=\"(request-target): \"+pm.request.method.toLowerCase()+\" \"+requestPath+\"\\ndate: \"+todaysDate+\"\\ndigest: SHA-256=\"+sha256digest;",
+									"/*console.log(signingPayload);*/",
+									"",
+									"/* >>>>>>>>>  be sure that the >>> key contents <<< is in the >>>current value<<< of the environment variable. The >>>initial value<<< is not picked up by the Postman API, only the current value is !! */",
+									"/* console.log(\"privkey: \"+pm.environment.get(\"PrivateKeySigningPEM\"));*/",
+									"pm.environment.set(\"signatureValue\",signMe(signingPayload,pm.environment.get(\"PrivateKeySigningPEM\")));",
+									"/*",
+									"console.log(pm.request.url.path);",
+									"console.log(pm.request.method);",
+									"console.log(\"path is \"+requestPath);*/"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"id": "e2924018-9474-45d0-8230-7f8f3fa847ad",
+								"exec": [
+									"pm.test(\"response must be okay to process\", function () {\r",
+									"   if ( pm.response.to.not.be.error && pm.response.to.have.jsonBody()) {\r",
+									"        pm.environment.set(\"Client_AT\",JSON.parse(responseBody).access_token);\r",
+									"   } else {\r",
+									"       console.log(\"Error was returned in the response\");\r",
+									"   }\r",
+									"    \r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"content-type": true
+						}
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/x-www-form-urlencoded",
+								"type": "text"
+							},
+							{
+								"key": "Digest",
+								"value": "SHA-256={{digest}}",
+								"type": "text"
+							},
+							{
+								"key": "Date",
+								"value": "{{currentDate}}",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Signature keyId=\"SN=5E4299BE\",algorithm=\"rsa-sha256\",headers=\"(request-target) date digest\",signature=\"{{signatureValue}}\"",
+								"type": "text"
+							},
+							{
+								"key": "TPP-Signature-Certificate",
+								"value": "{{eidas_signing_cert}}",
+								"description": "this header is needed when one use EIDAS, put the signing cert contents in the variable.",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "grant_type=client_credentials",
+							"options": {
+								"raw": {
+									"language": "text"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{hostName}}/oauth2/token",
+							"host": [
+								"{{hostName}}"
+							],
+							"path": [
+								"oauth2",
+								"token"
+							]
+						},
+						"description": "With Signing"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Authz Server URL",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "ea256619-15e6-40f2-ab60-a95894a48561",
+								"exec": [
+									"pm.test(\"response must be okay to process\", function () {\r",
+									"   if ( pm.response.to.not.be.error && pm.response.to.have.jsonBody()) {\r",
+									"        pm.environment.set(\"Authz_Server_URL\",JSON.parse(responseBody).location);\r",
+									"   } else {\r",
+									"       console.log(\"Error was returned in the response\");\r",
+									"   }\r",
+									"    \r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "fc07497f-bd34-441b-8ea5-363c58e65d9d",
+								"exec": [
+									"const navigator={};",
+									"const window={};",
+									"eval(pm.environment.get(\"jsrassign-js\")); ",
+									"eval(pm.environment.get(\"Global JS functions\"));",
+									"",
+									"/* format must be (for ING interoperability) :Fri, 01 May 2020 09:44:01 GMT;*/",
+									"todaysDate=generateCurrentDate();",
+									"",
+									"/* persist the generated date in environment variable crurrentDate */",
+									"pm.environment.set(\"currentDate\", todaysDate);",
+									"",
+									"/* calculate the SHA256 digest of the request body. */",
+									"var sha256digest=hashMe(\"\"); ",
+									"pm.environment.set(\"digest\", sha256digest);",
+									"",
+									"var uuid = require('uuid');",
+									"var myUUID = uuid.v4();",
+									"pm.environment.set(\"x-ing-req-id\",myUUID);",
+									"",
+									"requestPath=pm.request.url.getPathWithQuery();",
+									"/* console.log(\"requestpath: \"+requestPath); */",
+									"",
+									"signingPayload=\"(request-target): \"+pm.request.method.toLowerCase()+\" \"+requestPath+\"\\ndate: \"+todaysDate+\"\\ndigest: SHA-256=\"+sha256digest+\"\\nx-ing-reqid: \"+myUUID;",
+									"console.log(\"Sig Payload is: \"+signingPayload);",
+									"",
+									"/* >>>>>>>>>  be sure that the >>> key contents <<< is in the >>>current value<<< of the environment variable. The >>>initial value<<< is not picked up by the Postman API, only the current value is !! */",
+									"",
+									"pm.environment.set(\"signatureValue\",signMe(signingPayload,pm.environment.get(\"PrivateKeySigningPEM\")));",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [
+							{
+								"description": "Variable has a stattic value configured in the environment collection.",
+								"key": "Authorization",
+								"type": "text",
+								"value": "Bearer {{Client_AT}}"
+							},
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/x-www-form-urlencoded"
+							},
+							{
+								"description": "Digest value is calculated in th epre-request script and put into the variable.",
+								"key": "Digest",
+								"type": "text",
+								"value": "SHA-256={{digest}}"
+							},
+							{
+								"description": "Variable is caluclated in the pre-request script and put into this variable.",
+								"key": "Date",
+								"type": "text",
+								"value": "{{currentDate}}"
+							},
+							{
+								"key": "Signature",
+								"value": "keyId=\"{{client_id}}\",algorithm=\"rsa-sha256\",headers=\"(request-target) date digest x-ing-reqid\",signature=\"{{signatureValue}}\"",
+								"description": "keyId=\\\"6414808c-d8da-450e-b10d-8a1c1dd37561\\\",algorithm=\\\"rsa-sha256\\\", headers=\\\"(request-target) date digest x-ing-reqid\\\", signature=\\\"$signedRequest\\\"",
+								"type": "text"
+							},
+							{
+								"key": "X-ing-reqid",
+								"value": "{{x-ing-req-id}}",
+								"description": "value gets updated from the pre-request script with a random uuid value and is send along when the send button is clicked. Check the postman console for this and see for your self.",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{hostName}}/oauth2/authorization-server-url?scope=payment-accounts%3Atransactions%3Aview&country_code=NL&redirect_uri=https://www.example.com",
+							"host": [
+								"{{hostName}}"
+							],
+							"path": [
+								"oauth2",
+								"authorization-server-url"
+							],
+							"query": [
+								{
+									"key": "scope",
+									"value": "payment-accounts%3Atransactions%3Aview"
+								},
+								{
+									"key": "country_code",
+									"value": "NL"
+								},
+								{
+									"key": "redirect_uri",
+									"value": "https://www.example.com"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Customer Authorizes 3rd Party Request",
+					"protocolProfileBehavior": {
+						"followRedirects": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{Authz_Server_URL}}?client_id={{client_id}}&scope=payment-accounts%3Atransactions%3Aview&state={{$randomInt}}&redirect_uri=https://www.example.com&response_type=code",
+							"host": [
+								"{{Authz_Server_URL}}"
+							],
+							"query": [
+								{
+									"key": "client_id",
+									"value": "{{client_id}}"
+								},
+								{
+									"key": "scope",
+									"value": "payment-accounts%3Atransactions%3Aview"
+								},
+								{
+									"key": "state",
+									"value": "{{$randomInt}}"
+								},
+								{
+									"key": "redirect_uri",
+									"value": "https://www.example.com"
+								},
+								{
+									"key": "response_type",
+									"value": "code",
+									"description": "(result of request: https://www.example.com/?state=125&code=66a574e6-ae1d-4d08-aeaf-4866f800a6b8) - use a browser to have this url rendered, to make an account selection and have the authorization code returned. I could not get Postman to render the response."
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Customer AT Token",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "bddd30d5-5ce0-4ad7-9120-e2f76f7316e1",
+								"exec": [
+									"const navigator = {};",
+									"const window = {};",
+									"eval(pm.environment.get(\"jsrassign-js\"));",
+									"eval(pm.environment.get(\"Global JS functions\"));",
+									"",
+									"/* format must be (for ING interoperability) :Fri, 01 May 2020 09:44:01 GMT;*/",
+									"todaysDate = generateCurrentDate();",
+									"",
+									"/* persist the generated date in environment variable crurrentDate */",
+									"pm.environment.set(\"currentDate\", todaysDate);",
+									"",
+									"/* calculate the SHA256 digest of the request body. */",
+									"var sha256digest = hashMe(pm.request.body.toString());",
+									"console.log(pm.request.body.toString());",
+									"pm.environment.set(\"digest\", sha256digest);",
+									"",
+									"/* Pay attention to the digest part of the payload. The correct value would be digest: SHA-256=(calculated digest)*/",
+									"/* signingPayload=\"(request-target): post /oauth2/token\\ndate: \"+todaysDate+\"\\ndigest: SHA-256=\"+sha256digest;",
+									"console.log(signingPayload); */",
+									"var requestPath = pm.request.url.getPath();",
+									"signingPayload = \"(request-target): \" + pm.request.method.toLowerCase() + \" \" + requestPath + \"\\ndate: \" + todaysDate + \"\\ndigest: SHA-256=\" + sha256digest;",
+									"console.log(signingPayload);",
+									"",
+									"/* >>>>>>>>>  be sure that the >>> key contents <<< is in the >>>current value<<< of the environment variable. The >>>initial value<<< is not picked up by the Postman API, only the current value is !! */",
+									"/* console.log(\"privkey: \"+pm.environment.get(\"PrivateKeySigningPEM\"));*/",
+									"pm.environment.set(\"signatureValue\", signMe(signingPayload, pm.environment.get(\"PrivateKeySigningPEM\")));",
+									"/*",
+									"console.log(pm.request.url.path);",
+									"console.log(pm.request.method);",
+									"console.log(\"path is \"+requestPath);*/"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded",
+								"type": "text"
+							},
+							{
+								"key": "Digest",
+								"value": "SHA-256={{digest}}",
+								"type": "text"
+							},
+							{
+								"key": "Date",
+								"value": "{{currentDate}}",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{Client_AT}}",
+								"type": "text"
+							},
+							{
+								"key": "TPP-Signature-Certificate",
+								"value": "{{eidas_signing_cert}}",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "Signature",
+								"value": "keyId=\"{{client_id}}\",algorithm=\"rsa-sha256\",headers=\"(request-target) date digest\",signature=\"{{signatureValue}}\"",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "grant_type=authorization_code&code=06653de0-1e08-4e2f-a3af-db7e58b252c5"
+						},
+						"url": {
+							"raw": "https://api.sandbox.ing.com/oauth2/token",
+							"protocol": "https",
+							"host": [
+								"api",
+								"sandbox",
+								"ing",
+								"com"
+							],
+							"path": [
+								"oauth2",
+								"token"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"id": "f7335e7a-feca-49a5-8d65-06cb41528e11",
+				"type": "text/javascript",
+				"exec": [
+					"const dateNow = new Date();",
+					"postman.setGlobalVariable(\"currentDate\", dateNow.toLocaleDateString());"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"id": "89f2e51f-d583-4272-891b-6bf79f374e11",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"protocolProfileBehavior": {}
+}
